@@ -30,6 +30,7 @@
 #include "get_bits.h"
 #include "dnxhddata.h"
 #include "dsputil.h"
+#include "internal.h"
 #include "thread.h"
 
 typedef struct DNXHDContext {
@@ -133,7 +134,7 @@ static int dnxhd_decode_header(DNXHDContext *ctx, const uint8_t *buf, int buf_si
     av_dlog(ctx->avctx, "width %d, height %d\n", ctx->width, ctx->height);
 
     if (buf[0x21] & 0x40) {
-        ctx->avctx->pix_fmt = PIX_FMT_YUV422P10;
+        ctx->avctx->pix_fmt = AV_PIX_FMT_YUV422P10;
         ctx->avctx->bits_per_raw_sample = 10;
         if (ctx->bit_depth != 10) {
             ff_dsputil_init(&ctx->dsp, ctx->avctx);
@@ -141,7 +142,7 @@ static int dnxhd_decode_header(DNXHDContext *ctx, const uint8_t *buf, int buf_si
             ctx->decode_dct_block = dnxhd_decode_dct_block_10;
         }
     } else {
-        ctx->avctx->pix_fmt = PIX_FMT_YUV422P;
+        ctx->avctx->pix_fmt = AV_PIX_FMT_YUV422P;
         ctx->avctx->bits_per_raw_sample = 8;
         if (ctx->bit_depth != 8) {
             ff_dsputil_init(&ctx->dsp, ctx->avctx);
@@ -223,7 +224,6 @@ static av_always_inline void dnxhd_decode_dct_block(DNXHDContext *ctx,
         ctx->last_dc[component] += level;
     }
     block[0] = ctx->last_dc[component];
-    //av_log(ctx->avctx, AV_LOG_DEBUG, "dc %d\n", block[0]);
 
     i = 0;
 
@@ -256,14 +256,11 @@ static av_always_inline void dnxhd_decode_dct_block(DNXHDContext *ctx,
         }
 
         j = ctx->scantable.permutated[i];
-        //av_log(ctx->avctx, AV_LOG_DEBUG, "j %d\n", j);
-        //av_log(ctx->avctx, AV_LOG_DEBUG, "level %d, weight %d\n", level, weight_matrix[i]);
         level *= scale[i];
         if (level_bias < 32 || weight_matrix[i] != level_bias)
             level += level_bias;
         level >>= level_shift;
 
-        //av_log(NULL, AV_LOG_DEBUG, "i %d, j %d, end level %d\n", i, j, level);
         block[j] = (level^sign) - sign;
 
         UPDATE_CACHE(bs, &ctx->gb);
@@ -297,7 +294,6 @@ static int dnxhd_decode_macroblock(DNXHDContext *ctx, int x, int y)
 
     qscale = get_bits(&ctx->gb, 11);
     skip_bits1(&ctx->gb);
-    //av_log(ctx->avctx, AV_LOG_DEBUG, "qscale %d\n", qscale);
 
     if (qscale != ctx->last_qscale) {
         for (i = 0; i < 64; i++) {
@@ -362,7 +358,7 @@ static int dnxhd_decode_macroblocks(DNXHDContext *ctx, const uint8_t *buf, int b
     return 0;
 }
 
-static int dnxhd_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
+static int dnxhd_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
                               AVPacket *avpkt)
 {
     const uint8_t *buf = avpkt->data;
@@ -408,7 +404,7 @@ static int dnxhd_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
     }
 
     *picture = ctx->picture;
-    *data_size = sizeof(AVPicture);
+    *got_frame = 1;
     return buf_size;
 }
 
@@ -427,7 +423,7 @@ static av_cold int dnxhd_decode_close(AVCodecContext *avctx)
 AVCodec ff_dnxhd_decoder = {
     .name           = "dnxhd",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_DNXHD,
+    .id             = AV_CODEC_ID_DNXHD,
     .priv_data_size = sizeof(DNXHDContext),
     .init           = dnxhd_decode_init,
     .close          = dnxhd_decode_close,

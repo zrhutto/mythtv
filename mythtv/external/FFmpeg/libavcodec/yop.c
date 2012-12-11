@@ -27,6 +27,7 @@
 
 #include "avcodec.h"
 #include "get_bits.h"
+#include "internal.h"
 
 typedef struct YopDecContext {
     AVFrame frame;
@@ -85,7 +86,6 @@ static av_cold int yop_decode_init(AVCodecContext *avctx)
 
     if (avctx->width & 1 || avctx->height & 1 ||
         av_image_check_size(avctx->width, avctx->height, 0, avctx) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "YOP has invalid dimensions\n");
         return -1;
     }
 
@@ -94,7 +94,7 @@ static av_cold int yop_decode_init(AVCodecContext *avctx)
         return AVERROR_INVALIDDATA;
     }
 
-    avctx->pix_fmt = PIX_FMT_PAL8;
+    avctx->pix_fmt = AV_PIX_FMT_PAL8;
 
     avcodec_get_frame_defaults(&s->frame);
     s->num_pal_colors = avctx->extradata[0];
@@ -104,7 +104,7 @@ static av_cold int yop_decode_init(AVCodecContext *avctx)
     if (s->num_pal_colors + s->first_color[0] > 256 ||
         s->num_pal_colors + s->first_color[1] > 256) {
         av_log(avctx, AV_LOG_ERROR,
-               "YOP: palette parameters invalid, header probably corrupt\n");
+               "Palette parameters invalid, header probably corrupt\n");
         return AVERROR_INVALIDDATA;
     }
 
@@ -147,8 +147,7 @@ static int yop_copy_previous_block(YopDecContext *s, int copy_tag)
     bufptr = s->dstptr + motion_vector[copy_tag][0] +
              s->frame.linesize[0] * motion_vector[copy_tag][1];
     if (bufptr < s->dstbuf) {
-        av_log(s->avctx, AV_LOG_ERROR,
-               "YOP: cannot decode, file probably corrupt\n");
+        av_log(s->avctx, AV_LOG_ERROR, "File probably corrupt\n");
         return AVERROR_INVALIDDATA;
     }
 
@@ -193,7 +192,7 @@ static void yop_next_macroblock(YopDecContext *s)
     s->dstptr += 2;
 }
 
-static int yop_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
+static int yop_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
                             AVPacket *avpkt)
 {
     YopDecContext *s = avctx->priv_data;
@@ -204,7 +203,12 @@ static int yop_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
     if (s->frame.data[0])
         avctx->release_buffer(avctx, &s->frame);
 
-    ret = avctx->get_buffer(avctx, &s->frame);
+    if (avpkt->size < 4 + 3*s->num_pal_colors) {
+        av_log(avctx, AV_LOG_ERROR, "packet of size %d too small\n", avpkt->size);
+        return AVERROR_INVALIDDATA;
+    }
+
+    ret = ff_get_buffer(avctx, &s->frame);
     if (ret < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return ret;
@@ -219,6 +223,10 @@ static int yop_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
     s->low_nibble = NULL;
 
     is_odd_frame = avpkt->data[0];
+    if(is_odd_frame>1){
+        av_log(avctx, AV_LOG_ERROR, "frame is too odd %d\n", is_odd_frame);
+        return AVERROR_INVALIDDATA;
+    }
     firstcolor   = s->first_color[is_odd_frame];
     palette      = (uint32_t *)s->frame.data[1];
 
@@ -226,7 +234,7 @@ static int yop_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
         palette[i + firstcolor] = (s->srcptr[0] << 18) |
                                   (s->srcptr[1] << 10) |
                                   (s->srcptr[2] << 2);
-        palette[i + firstcolor] |= 0xFF << 24 |
+        palette[i + firstcolor] |= 0xFFU << 24 |
                                    (palette[i + firstcolor] >> 6) & 0x30303;
     }
 
@@ -251,7 +259,7 @@ static int yop_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
         yop_next_macroblock(s);
     }
 
-    *data_size        = sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame *) data = s->frame;
     return avpkt->size;
 }
@@ -259,7 +267,7 @@ static int yop_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
 AVCodec ff_yop_decoder = {
     .name           = "yop",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_YOP,
+    .id             = AV_CODEC_ID_YOP,
     .priv_data_size = sizeof(YopDecContext),
     .init           = yop_decode_init,
     .close          = yop_decode_close,

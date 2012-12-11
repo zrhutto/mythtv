@@ -105,7 +105,7 @@ static int thp_read_header(AVFormatContext *s)
                is required.  */
             avpriv_set_pts_info(st, 64, thp->fps.den, thp->fps.num);
             st->codec->codec_type = AVMEDIA_TYPE_VIDEO;
-            st->codec->codec_id = CODEC_ID_THP;
+            st->codec->codec_id = AV_CODEC_ID_THP;
             st->codec->codec_tag = 0;  /* no fourcc */
             st->codec->width = avio_rb32(pb);
             st->codec->height = avio_rb32(pb);
@@ -125,7 +125,7 @@ static int thp_read_header(AVFormatContext *s)
                 return AVERROR(ENOMEM);
 
             st->codec->codec_type = AVMEDIA_TYPE_AUDIO;
-            st->codec->codec_id = CODEC_ID_ADPCM_THP;
+            st->codec->codec_id = AV_CODEC_ID_ADPCM_THP;
             st->codec->codec_tag = 0;  /* no fourcc */
             st->codec->channels    = avio_rb32(pb); /* numChannels.  */
             st->codec->sample_rate = avio_rb32(pb); /* Frequency.  */
@@ -151,7 +151,7 @@ static int thp_read_packet(AVFormatContext *s,
     if (thp->audiosize == 0) {
         /* Terminate when last frame is reached.  */
         if (thp->frame >= thp->framecnt)
-            return AVERROR(EIO);
+            return AVERROR_EOF;
 
         avio_seek(pb, thp->next_frame, SEEK_SET);
 

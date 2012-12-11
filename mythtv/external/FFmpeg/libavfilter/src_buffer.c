@@ -30,10 +30,9 @@
 #include "audio.h"
 #include "avcodec.h"
 #include "buffersrc.h"
-#include "vsrc_buffer.h"
 #include "asrc_abuffer.h"
-#include "libavutil/audioconvert.h"
 #include "libavutil/avstring.h"
+#include "libavutil/channel_layout.h"
 #include "libavutil/fifo.h"
 #include "libavutil/imgutils.h"
 
@@ -46,7 +45,7 @@ typedef struct {
     /* Video only */
     AVFilterContext  *scale;
     int               h, w;
-    enum PixelFormat  pix_fmt;
+    enum AVPixelFormat  pix_fmt;
     AVRational        sample_aspect_ratio;
     char              sws_param[256];
 
@@ -65,27 +64,6 @@ static void buf_free(AVFilterBuffer *ptr)
 {
     av_free(ptr);
     return;
-}
-
-int av_vsrc_buffer_add_video_buffer_ref(AVFilterContext *buffer_filter,
-                                        AVFilterBufferRef *picref, int flags)
-{
-    return av_buffersrc_add_ref(buffer_filter, picref, 0);
-}
-
-#if CONFIG_AVCODEC
-#include "avcodec.h"
-
-int av_vsrc_buffer_add_frame(AVFilterContext *buffer_src,
-                             const AVFrame *frame, int flags)
-{
-    return av_buffersrc_add_frame(buffer_src, frame, 0);
-}
-#endif
-
-unsigned av_vsrc_buffer_get_nb_failed_requests(AVFilterContext *buffer_src)
-{
-    return ((BufferSourceContext *)buffer_src->priv)->nb_failed_requests;
 }
 
 int av_asrc_buffer_add_audio_buffer_ref(AVFilterContext *ctx,

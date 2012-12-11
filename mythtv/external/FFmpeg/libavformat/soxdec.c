@@ -58,14 +58,14 @@ static int sox_read_header(AVFormatContext *s)
     st->codec->codec_type = AVMEDIA_TYPE_AUDIO;
 
     if (avio_rl32(pb) == SOX_TAG) {
-        st->codec->codec_id = CODEC_ID_PCM_S32LE;
+        st->codec->codec_id = AV_CODEC_ID_PCM_S32LE;
         header_size         = avio_rl32(pb);
         avio_skip(pb, 8); /* sample count */
         sample_rate         = av_int2double(avio_rl64(pb));
         st->codec->channels = avio_rl32(pb);
         comment_size        = avio_rl32(pb);
     } else {
-        st->codec->codec_id = CODEC_ID_PCM_S32BE;
+        st->codec->codec_id = AV_CODEC_ID_PCM_S32BE;
         header_size         = avio_rb32(pb);
         avio_skip(pb, 8); /* sample count */
         sample_rate         = av_int2double(avio_rb64(pb));
@@ -124,31 +124,11 @@ static int sox_read_header(AVFormatContext *s)
     return 0;
 }
 
-#define SOX_SAMPLES 1024
-
-static int sox_read_packet(AVFormatContext *s,
-                           AVPacket *pkt)
-{
-    int ret, size;
-
-    if (url_feof(s->pb))
-        return AVERROR_EOF;
-
-    size = SOX_SAMPLES*s->streams[0]->codec->block_align;
-    ret = av_get_packet(s->pb, pkt, size);
-    if (ret < 0)
-        return AVERROR(EIO);
-    pkt->flags &= ~AV_PKT_FLAG_CORRUPT;
-    pkt->stream_index = 0;
-
-    return 0;
-}
-
 AVInputFormat ff_sox_demuxer = {
     .name           = "sox",
-    .long_name      = NULL_IF_CONFIG_SMALL("SoX native format"),
+    .long_name      = NULL_IF_CONFIG_SMALL("SoX native"),
     .read_probe     = sox_probe,
     .read_header    = sox_read_header,
-    .read_packet    = sox_read_packet,
+    .read_packet    = ff_pcm_read_packet,
     .read_seek      = ff_pcm_read_seek,
 };

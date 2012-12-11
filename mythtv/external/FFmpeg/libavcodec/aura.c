@@ -24,6 +24,8 @@
  */
 
 #include "avcodec.h"
+#include "internal.h"
+#include "libavutil/internal.h"
 
 typedef struct AuraDecodeContext {
     AVCodecContext *avctx;
@@ -38,14 +40,14 @@ static av_cold int aura_decode_init(AVCodecContext *avctx)
     /* width needs to be divisible by 4 for this codec to work */
     if (avctx->width & 0x3)
         return -1;
-    avctx->pix_fmt = PIX_FMT_YUV422P;
+    avctx->pix_fmt = AV_PIX_FMT_YUV422P;
     avcodec_get_frame_defaults(&s->frame);
 
     return 0;
 }
 
 static int aura_decode_frame(AVCodecContext *avctx,
-                             void *data, int *data_size,
+                             void *data, int *got_frame,
                              AVPacket *pkt)
 {
     AuraDecodeContext *s=avctx->priv_data;
@@ -72,7 +74,7 @@ static int aura_decode_frame(AVCodecContext *avctx,
 
     s->frame.buffer_hints = FF_BUFFER_HINTS_VALID;
     s->frame.reference = 0;
-    if(avctx->get_buffer(avctx, &s->frame) < 0) {
+    if(ff_get_buffer(avctx, &s->frame) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return -1;
     }
@@ -107,7 +109,7 @@ static int aura_decode_frame(AVCodecContext *avctx,
         V += s->frame.linesize[2] - (avctx->width >> 1);
     }
 
-    *data_size=sizeof(AVFrame);
+    *got_frame = 1;
     *(AVFrame*)data= s->frame;
 
     return pkt->size;
@@ -126,7 +128,7 @@ static av_cold int aura_decode_end(AVCodecContext *avctx)
 AVCodec ff_aura2_decoder = {
     .name           = "aura2",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_AURA2,
+    .id             = AV_CODEC_ID_AURA2,
     .priv_data_size = sizeof(AuraDecodeContext),
     .init           = aura_decode_init,
     .close          = aura_decode_end,

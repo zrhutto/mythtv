@@ -104,7 +104,7 @@
  */
 #define DELAYED_PIC_REF 4
 
-#define QP_MAX_NUM (51 + 4*6)           // The maximum supported qp
+#define QP_MAX_NUM (51 + 6*6)           // The maximum supported qp
 
 /* NAL unit types */
 enum {
@@ -130,6 +130,7 @@ enum {
 typedef enum {
     SEI_BUFFERING_PERIOD            = 0,   ///< buffering period (H.264, D.1.1)
     SEI_TYPE_PIC_TIMING             = 1,   ///< picture timing
+    SEI_TYPE_USER_DATA_ITU_T_T35    = 4,   ///< user data registered by ITU-T Recommendation T.35
     SEI_TYPE_USER_DATA_UNREGISTERED = 5,   ///< unregistered user data
     SEI_TYPE_RECOVERY_POINT         = 6    ///< recovery point (frame # to decoder sync)
 } SEI_Type;
@@ -446,6 +447,7 @@ typedef struct H264Context {
     int nal_unit_type;
     uint8_t *rbsp_buffer[2];
     unsigned int rbsp_buffer_size[2];
+    int decoding_extradata;
 
     /**
      * Used to parse AVC variant of h264
@@ -513,7 +515,7 @@ typedef struct H264Context {
     struct H264Context *thread_context[MAX_THREADS];
 
     /**
-     * current slice number, used to initalize slice_num of each thread/context
+     * current slice number, used to initialize slice_num of each thread/context
      */
     int current_slice;
 
@@ -580,6 +582,11 @@ typedef struct H264Context {
      */
     int recovery_frame;
 
+    /**
+     * Are the SEI recovery points looking valid.
+     */
+    int valid_recovery_point;
+
     int luma_weight_flag[2];    ///< 7.4.3.2 luma_weight_lX_flag
     int chroma_weight_flag[2];  ///< 7.4.3.2 chroma_weight_lX_flag
 
@@ -588,6 +595,7 @@ typedef struct H264Context {
     int initial_cpb_removal_delay[32];  ///< Initial timestamps for CPBs
 
     int cur_chroma_format_idc;
+    uint8_t *bipred_scratchpad;
 
     int16_t slice_row[MAX_SLICES]; ///< to detect when MAX_SLICES is too low
 
@@ -598,7 +606,7 @@ typedef struct H264Context {
     int parse_last_mb;
 } H264Context;
 
-extern const uint8_t ff_h264_chroma_qp[5][QP_MAX_NUM + 1]; ///< One chroma qp table for each possible bit depth (8-12).
+extern const uint8_t ff_h264_chroma_qp[7][QP_MAX_NUM + 1]; ///< One chroma qp table for each possible bit depth (8-14).
 extern const uint16_t ff_h264_mb_sizes[4];
 
 /**

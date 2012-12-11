@@ -20,6 +20,7 @@
  */
 
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -212,7 +213,7 @@ int av_strncasecmp(const char *a, const char *b, size_t n)
 
 #ifdef TEST
 
-#undef printf
+#include "common.h"
 
 int main(void)
 {
@@ -250,10 +251,13 @@ int main(void)
         };
 
         for (i=0; i < FF_ARRAY_ELEMS(strings); i++) {
-            const char *p= strings[i];
+            const char *p = strings[i];
+            char *q;
             printf("|%s|", p);
-            printf(" -> |%s|", av_get_token(&p, ":"));
+            q = av_get_token(&p, ":");
+            printf(" -> |%s|", q);
             printf(" + |%s|\n", p);
+            av_free(q);
         }
     }
 

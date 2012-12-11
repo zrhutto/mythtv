@@ -1,4 +1,4 @@
-#! /usr/bin/perl -w
+#! /usr/bin/perl
 
 #   Copyright (C) 1999, 2000, 2001 Free Software Foundation, Inc.
 
@@ -22,6 +22,8 @@
 # This does trivial (and I mean _trivial_) conversion of Texinfo
 # markup to Perl POD format.  It's intended to be used to extract
 # something suitable for a manpage from a Texinfo document.
+
+use warnings;
 
 $output = 0;
 $skipping = 0;
@@ -209,7 +211,6 @@ INF: while(<$inf>) {
     s/\@TeX\{\}/TeX/g;
     s/\@pounds\{\}/\#/g;
     s/\@minus(?:\{\})?/-/g;
-    s/\\,/,/g;
 
     # Now the ones that have to be replaced by special escapes
     # (which will be turned back into text by unmunge())
@@ -267,7 +268,7 @@ INF: while(<$inf>) {
         push @icstack, $ic;
         $endw = $1;
         $ic = $2;
-        $ic =~ s/\@(?:samp|strong|key|gcctabopt|option|env)/B/;
+        $ic =~ s/\@(?:samp|strong|key|gcctabopt|option|env|command)/B/;
         $ic =~ s/\@(?:code|kbd)/C/;
         $ic =~ s/\@(?:dfn|var|emph|cite|i)/I/;
         $ic =~ s/\@(?:file)/F/;

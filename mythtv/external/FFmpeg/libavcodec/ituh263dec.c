@@ -42,9 +42,6 @@
 #include "flv.h"
 #include "mpeg4video.h"
 
-//#undef NDEBUG
-//#include <assert.h>
-
 // The defines below define the number of bits that are read at once for
 // reading vlc values. Changing these may improve speed and data cache needs
 // be aware though that decreasing them may need the number of stages that is
@@ -105,11 +102,9 @@ static VLC cbpc_b_vlc;
 /* XXX: find a better solution to handle static init */
 void ff_h263_decode_init_vlc(MpegEncContext *s)
 {
-    static int done = 0;
+    static volatile int done = 0;
 
     if (!done) {
-        done = 1;
-
         INIT_VLC_STATIC(&ff_h263_intra_MCBPC_vlc, INTRA_MCBPC_VLC_BITS, 9,
                  ff_h263_intra_MCBPC_bits, 1, 1,
                  ff_h263_intra_MCBPC_code, 1, 1, 72);
@@ -132,6 +127,7 @@ void ff_h263_decode_init_vlc(MpegEncContext *s)
         INIT_VLC_STATIC(&cbpc_b_vlc, CBPC_B_VLC_BITS, 4,
                  &ff_cbpc_b_tab[0][1], 2, 1,
                  &ff_cbpc_b_tab[0][0], 2, 1, 8);
+        done = 1;
     }
 }
 
@@ -210,16 +206,19 @@ static int h263_decode_gob_header(MpegEncContext *s)
  * @param end pointer to the end of the buffer
  * @return pointer to the next resync_marker, or end if none was found
  */
-const uint8_t *ff_h263_find_resync_marker(const uint8_t *restrict p, const uint8_t * restrict end)
+const uint8_t *ff_h263_find_resync_marker(MpegEncContext *s, const uint8_t *av_restrict p, const uint8_t *av_restrict end)
 {
-    assert(p < end);
+    av_assert2(p < end);
 
     end-=2;
     p++;
-    for(;p<end; p+=2){
-        if(!*p){
-            if     (!p[-1] && p[1]) return p - 1;
-            else if(!p[ 1] && p[2]) return p;
+    if(s->resync_marker){
+        int prefix_len = ff_mpeg4_get_video_packet_prefix_length(s);
+        for(;p<end; p+=2){
+            if(!*p){
+                if      (!p[-1] && ((p[1] >> (23-prefix_len)) == 1)) return p - 1;
+                else if (!p[ 1] && ((p[2] >> (23-prefix_len)) == 1)) return p;
+            }
         }
     }
     return end+2;
@@ -232,14 +231,14 @@ const uint8_t *ff_h263_find_resync_marker(const uint8_t *restrict p, const uint8
 int ff_h263_resync(MpegEncContext *s){
     int left, pos, ret;
 
-    if(s->codec_id==CODEC_ID_MPEG4){
+    if(s->codec_id==AV_CODEC_ID_MPEG4){
         skip_bits1(&s->gb);
         align_get_bits(&s->gb);
     }
 
     if(show_bits(&s->gb, 16)==0){
         pos= get_bits_count(&s->gb);
-        if(CONFIG_MPEG4_DECODER && s->codec_id==CODEC_ID_MPEG4)
+        if(CONFIG_MPEG4_DECODER && s->codec_id==AV_CODEC_ID_MPEG4)
             ret= ff_mpeg4_decode_video_packet_header(s);
         else
             ret= h263_decode_gob_header(s);
@@ -256,7 +255,7 @@ int ff_h263_resync(MpegEncContext *s){
             GetBitContext bak= s->gb;
 
             pos= get_bits_count(&s->gb);
-            if(CONFIG_MPEG4_DECODER && s->codec_id==CODEC_ID_MPEG4)
+            if(CONFIG_MPEG4_DECODER && s->codec_id==AV_CODEC_ID_MPEG4)
                 ret= ff_mpeg4_decode_video_packet_header(s);
             else
                 ret= h263_decode_gob_header(s);
@@ -349,7 +348,7 @@ static void preview_obmc(MpegEncContext *s){
         s->block_index[i]+= 1;
     s->mb_x++;
 
-    assert(s->pict_type == AV_PICTURE_TYPE_P);
+    av_assert2(s->pict_type == AV_PICTURE_TYPE_P);
 
     do{
         if (get_bits1(&s->gb)) {
@@ -460,7 +459,7 @@ static int h263_decode_block(MpegEncContext * s, DCTELEM * block,
         }
     } else if (s->mb_intra) {
         /* DC coef */
-        if(s->codec_id == CODEC_ID_RV10){
+        if(s->codec_id == AV_CODEC_ID_RV10){
 #if CONFIG_RV10_DECODER
           if (s->rv10_version == 3 && s->pict_type == AV_PICTURE_TYPE_I) {
             int component, diff;
@@ -519,7 +518,7 @@ retry:
                 run = get_bits(&s->gb, 6);
                 level = (int8_t)get_bits(&s->gb, 8);
                 if(level == -128){
-                    if (s->codec_id == CODEC_ID_RV10) {
+                    if (s->codec_id == AV_CODEC_ID_RV10) {
                         /* XXX: should patch encoder too */
                         level = get_sbits(&s->gb, 12);
                     }else{
@@ -608,7 +607,7 @@ int ff_h263_decode_mb(MpegEncContext *s,
     const int xy= s->mb_x + s->mb_y * s->mb_stride;
     int cbpb = 0, pb_mv_count = 0;
 
-    assert(!s->h263_pred);
+    av_assert2(!s->h263_pred);
 
     if (s->pict_type == AV_PICTURE_TYPE_P) {
         do{
@@ -748,7 +747,7 @@ int ff_h263_decode_mb(MpegEncContext *s,
         }else
             cbp=0;
 
-        assert(!s->mb_intra);
+        av_assert2(!s->mb_intra);
 
         if(IS_QUANT(mb_type)){
             h263_decode_dquant(s);
@@ -963,6 +962,8 @@ int ff_h263_decode_picture_header(MpegEncContext *s)
             s->h263_aic = get_bits1(&s->gb); /* Advanced Intra Coding (AIC) */
             s->loop_filter= get_bits1(&s->gb);
             s->unrestricted_mv = s->umvplus || s->obmc || s->loop_filter;
+            if(s->avctx->lowres)
+                s->loop_filter = 0;
 
             s->h263_slice_structured= get_bits1(&s->gb);
             if (get_bits1(&s->gb) != 0) {
@@ -1074,6 +1075,10 @@ int ff_h263_decode_picture_header(MpegEncContext *s)
         s->qscale = get_bits(&s->gb, 5);
     }
 
+    if (s->width == 0 || s->height == 0) {
+        av_log(s->avctx, AV_LOG_ERROR, "dimensions 0\n");
+        return -1;
+    }
     s->mb_width = (s->width  + 15) / 16;
     s->mb_height = (s->height  + 15) / 16;
     s->mb_num = s->mb_width * s->mb_height;

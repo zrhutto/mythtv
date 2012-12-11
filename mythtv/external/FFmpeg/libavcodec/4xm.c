@@ -29,9 +29,9 @@
 #include "bytestream.h"
 #include "dsputil.h"
 #include "get_bits.h"
+#include "internal.h"
 
-//#undef NDEBUG
-//#include <assert.h>
+#include "libavutil/avassert.h"
 
 #define BLOCK_TYPE_VLC_BITS 5
 #define ACDC_VLC_BITS 9
@@ -328,7 +328,7 @@ static inline void mcdc(uint16_t *dst, const uint16_t *src, int log2w,
         }
         break;
     default:
-        assert(0);
+        av_assert2(0);
     }
 }
 
@@ -343,7 +343,7 @@ static void decode_p_block(FourXContext *f, uint16_t *dst, uint16_t *src,
     uint16_t *start = (uint16_t *)f->last_picture.data[0];
     uint16_t *end   = start + stride * (f->avctx->height - h + 1) - (1 << log2w);
 
-    assert(code >= 0 && code <= 6);
+    av_assert2(code >= 0 && code <= 6);
 
     if (code == 0) {
         if (f->g.buffer_end - f->g.buffer < 1) {
@@ -429,7 +429,7 @@ static int decode_p_frame(FourXContext *f, const uint8_t *buf, int length)
         bytestream_size = FFMAX(length - bitstream_size - wordstream_size, 0);
     }
 
-    if (bitstream_size > length ||
+    if (bitstream_size > length || bitstream_size >= INT_MAX/8 ||
         bytestream_size > length - bitstream_size ||
         wordstream_size > length - bytestream_size - bitstream_size ||
         extra > length - bytestream_size - bitstream_size - wordstream_size) {
@@ -784,7 +784,7 @@ static int decode_i_frame(FourXContext *f, const uint8_t *buf, int length)
 }
 
 static int decode_frame(AVCodecContext *avctx, void *data,
-                        int *data_size, AVPacket *avpkt)
+                        int *got_frame, AVPacket *avpkt)
 {
     const uint8_t *buf    = avpkt->data;
     int buf_size          = avpkt->size;
@@ -809,6 +809,11 @@ static int decode_frame(AVCodecContext *avctx, void *data,
 
         if (data_size < 0 || whole_size < 0) {
             av_log(f->avctx, AV_LOG_ERROR, "sizes invalid\n");
+            return AVERROR_INVALIDDATA;
+        }
+
+        if (f->version <= 1) {
+            av_log(f->avctx, AV_LOG_ERROR, "cfrm in version %d\n", f->version);
             return AVERROR_INVALIDDATA;
         }
 
@@ -837,7 +842,7 @@ static int decode_frame(AVCodecContext *avctx, void *data,
                                      cfrm->size + data_size + FF_INPUT_BUFFER_PADDING_SIZE);
         // explicit check needed as memcpy below might not catch a NULL
         if (!cfrm->data) {
-            av_log(f->avctx, AV_LOG_ERROR, "realloc falure");
+            av_log(f->avctx, AV_LOG_ERROR, "realloc falure\n");
             return -1;
         }
 
@@ -892,7 +897,7 @@ static int decode_frame(AVCodecContext *avctx, void *data,
     } else if (frame_4cc == AV_RL32("pfrm") || frame_4cc == AV_RL32("pfr2")) {
         if (!f->last_picture.data[0]) {
             f->last_picture.reference = 3;
-            if (avctx->get_buffer(avctx, &f->last_picture) < 0) {
+            if (ff_get_buffer(avctx, &f->last_picture) < 0) {
                 av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
                 return -1;
             }
@@ -914,7 +919,7 @@ static int decode_frame(AVCodecContext *avctx, void *data,
     p->key_frame = p->pict_type == AV_PICTURE_TYPE_I;
 
     *picture   = *p;
-    *data_size = sizeof(AVPicture);
+    *got_frame = 1;
 
     emms_c();
 
@@ -937,7 +942,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
 
     if (avctx->extradata_size != 4 || !avctx->extradata) {
         av_log(avctx, AV_LOG_ERROR, "extradata wrong or missing\n");
-        return 1;
+        return AVERROR_INVALIDDATA;
     }
     if((avctx->width % 16) || (avctx->height % 16)) {
         av_log(avctx, AV_LOG_ERROR, "unsupported width/height\n");
@@ -951,9 +956,9 @@ static av_cold int decode_init(AVCodecContext *avctx)
     init_vlcs(f);
 
     if (f->version > 2)
-        avctx->pix_fmt = PIX_FMT_RGB565;
+        avctx->pix_fmt = AV_PIX_FMT_RGB565;
     else
-        avctx->pix_fmt = PIX_FMT_BGR555;
+        avctx->pix_fmt = AV_PIX_FMT_BGR555;
 
     return 0;
 }
@@ -982,7 +987,7 @@ static av_cold int decode_end(AVCodecContext *avctx)
 AVCodec ff_fourxm_decoder = {
     .name           = "4xm",
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_4XM,
+    .id             = AV_CODEC_ID_4XM,
     .priv_data_size = sizeof(FourXContext),
     .init           = decode_init,
     .close          = decode_end,

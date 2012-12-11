@@ -20,7 +20,6 @@
 ;* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 ;******************************************************************************
 
-%include "libavutil/x86/x86inc.asm"
 %include "libavutil/x86/x86util.asm"
 
 SECTION_RODATA
@@ -189,7 +188,7 @@ cglobal put_vp8_epel%1_h6, 6, 6 + npicregs, 8, dst, dststride, src, srcstride, h
     mova      m6, [sixtap_filter_hb+mxq*8-32]
     mova      m7, [sixtap_filter_hb+mxq*8-16]
 
-.nextrow
+.nextrow:
     movu      m0, [srcq-2]
     mova      m1, m0
     mova      m2, m0
@@ -229,7 +228,7 @@ cglobal put_vp8_epel%1_h4, 6, 6 + npicregs, 7, dst, dststride, src, srcstride, h
     mova      m5, [fourtap_filter_hb+mxq-16] ; set up 4tap filter in bytes
     mova      m6, [fourtap_filter_hb+mxq]
 
-.nextrow
+.nextrow:
     movu      m0, [srcq-1]
     mova      m1, m0
     pshufb    m0, m3
@@ -264,7 +263,7 @@ cglobal put_vp8_epel%1_v4, 7, 7, 8, dst, dststride, src, srcstride, height, picr
     movh      m2, [srcq+2*srcstrideq]
     add     srcq, srcstrideq
 
-.nextrow
+.nextrow:
     movh      m3, [srcq+2*srcstrideq]      ; read new row
     mova      m4, m0
     mova      m0, m1
@@ -304,7 +303,7 @@ cglobal put_vp8_epel%1_v6, 7, 7, 8, dst, dststride, src, srcstride, height, picr
     movh      m3, [srcq]
     movh      m4, [srcq+srcstrideq]
 
-.nextrow
+.nextrow:
     movh      m5, [srcq+2*srcstrideq]      ; read new row
     mova      m6, m0
     punpcklbw m6, m5
@@ -339,7 +338,7 @@ INIT_XMM ssse3
 FILTER_SSSE3 8
 
 ; 4x4 block, H-only 4-tap filter
-INIT_MMX mmx2
+INIT_MMX mmxext
 cglobal put_vp8_epel4_h4, 6, 6 + npicregs, 0, dst, dststride, src, srcstride, height, mx, picreg
     shl       mxd, 4
 %ifdef PIC
@@ -350,7 +349,7 @@ cglobal put_vp8_epel4_h4, 6, 6 + npicregs, 0, dst, dststride, src, srcstride, he
     movq      mm7, [pw_64]
     pxor      mm6, mm6
 
-.nextrow
+.nextrow:
     movq      mm1, [srcq-1]                ; (ABCDEFGH) load 8 horizontal pixels
 
     ; first set of 2 pixels
@@ -387,7 +386,7 @@ cglobal put_vp8_epel4_h4, 6, 6 + npicregs, 0, dst, dststride, src, srcstride, he
     REP_RET
 
 ; 4x4 block, H-only 6-tap filter
-INIT_MMX mmx2
+INIT_MMX mmxext
 cglobal put_vp8_epel4_h6, 6, 6 + npicregs, 0, dst, dststride, src, srcstride, height, mx, picreg
     lea       mxd, [mxq*3]
 %ifdef PIC
@@ -399,7 +398,7 @@ cglobal put_vp8_epel4_h6, 6, 6 + npicregs, 0, dst, dststride, src, srcstride, he
     movq      mm7, [pw_64]
     pxor      mm3, mm3
 
-.nextrow
+.nextrow:
     movq      mm1, [srcq-2]                ; (ABCDEFGH) load 8 horizontal pixels
 
     ; first set of 2 pixels
@@ -459,7 +458,7 @@ cglobal put_vp8_epel8_h4, 6, 6 + npicregs, 10, dst, dststride, src, srcstride, h
     mova      m8, [mxq+32]
     mova      m9, [mxq+48]
 %endif
-.nextrow
+.nextrow:
     movq      m0, [srcq-1]
     movq      m1, [srcq-0]
     movq      m2, [srcq+1]
@@ -510,7 +509,7 @@ cglobal put_vp8_epel8_h6, 6, 6 + npicregs, 14, dst, dststride, src, srcstride, h
     mova     m12, [mxq+64]
     mova     m13, [mxq+80]
 %endif
-.nextrow
+.nextrow:
     movq      m0, [srcq-2]
     movq      m1, [srcq-1]
     movq      m2, [srcq-0]
@@ -577,7 +576,7 @@ cglobal put_vp8_epel%1_v4, 7, 7, 8, dst, dststride, src, srcstride, height, picr
     punpcklbw m1, m7
     punpcklbw m2, m7
 
-.nextrow
+.nextrow:
     ; first calculate negative taps (to prevent losing positive overflows)
     movh      m4, [srcq+2*srcstrideq]      ; read new row
     punpcklbw m4, m7
@@ -635,7 +634,7 @@ cglobal put_vp8_epel%1_v6, 7, 7, 8, dst, dststride, src, srcstride, height, picr
     punpcklbw m3, m7
     punpcklbw m4, m7
 
-.nextrow
+.nextrow:
     ; first calculate negative taps (to prevent losing positive overflows)
     mova      m5, m1
     pmullw    m5, [myq+16]
@@ -674,7 +673,7 @@ cglobal put_vp8_epel%1_v6, 7, 7, 8, dst, dststride, src, srcstride, height, picr
     REP_RET
 %endmacro
 
-INIT_MMX mmx2
+INIT_MMX mmxext
 FILTER_V 4
 INIT_XMM sse2
 FILTER_V 8
@@ -689,7 +688,7 @@ cglobal put_vp8_bilinear%1_v, 7, 7, 7, dst, dststride, src, srcstride, height, p
     mova      m5, [bilinear_filter_vw+myq-1*16]
     neg      myq
     mova      m4, [bilinear_filter_vw+myq+7*16]
-.nextrow
+.nextrow:
     movh      m0, [srcq+srcstrideq*0]
     movh      m1, [srcq+srcstrideq*1]
     movh      m3, [srcq+srcstrideq*2]
@@ -733,7 +732,7 @@ cglobal put_vp8_bilinear%1_h, 6, 6 + npicregs, 7, dst, dststride, src, srcstride
     mova      m5, [bilinear_filter_vw+mxq-1*16]
     neg      mxq
     mova      m4, [bilinear_filter_vw+mxq+7*16]
-.nextrow
+.nextrow:
     movh      m0, [srcq+srcstrideq*0+0]
     movh      m1, [srcq+srcstrideq*0+1]
     movh      m2, [srcq+srcstrideq*1+0]
@@ -770,7 +769,7 @@ cglobal put_vp8_bilinear%1_h, 6, 6 + npicregs, 7, dst, dststride, src, srcstride
     REP_RET
 %endmacro
 
-INIT_MMX mmx2
+INIT_MMX mmxext
 FILTER_BILINEAR 4
 INIT_XMM sse2
 FILTER_BILINEAR 8
@@ -783,7 +782,7 @@ cglobal put_vp8_bilinear%1_v, 7, 7, 5, dst, dststride, src, srcstride, height, p
 %endif
     pxor      m4, m4
     mova      m3, [bilinear_filter_vb+myq-16]
-.nextrow
+.nextrow:
     movh      m0, [srcq+srcstrideq*0]
     movh      m1, [srcq+srcstrideq*1]
     movh      m2, [srcq+srcstrideq*2]
@@ -820,7 +819,7 @@ cglobal put_vp8_bilinear%1_h, 6, 6 + npicregs, 5, dst, dststride, src, srcstride
     pxor      m4, m4
     mova      m2, [filter_h2_shuf]
     mova      m3, [bilinear_filter_vb+mxq-16]
-.nextrow
+.nextrow:
     movu      m0, [srcq+srcstrideq*0]
     movu      m1, [srcq+srcstrideq*1]
     pshufb    m0, m2
@@ -1465,27 +1464,6 @@ VP8_DC_WHT
 %endif
 %endmacro
 
-%macro SPLATB_REG 2-3
-%if cpuflag(ssse3)
-    movd           %1, %2d
-    pshufb         %1, %3
-%elif cpuflag(sse2)
-    movd           %1, %2d
-    punpcklbw      %1, %1
-    pshuflw        %1, %1, 0x0
-    punpcklqdq     %1, %1
-%elif cpuflag(mmx2)
-    movd           %1, %2d
-    punpcklbw      %1, %1
-    pshufw         %1, %1, 0x0
-%else
-    movd           %1, %2d
-    punpcklbw      %1, %1
-    punpcklwd      %1, %1
-    punpckldq      %1, %1
-%endif
-%endmacro
-
 %macro SIMPLE_LOOPFILTER 2
 cglobal vp8_%1_loop_filter_simple, 3, %2, 8, dst, stride, flim, cntr
 %if mmsize == 8 ; mmx/mmxext
@@ -1509,7 +1487,7 @@ cglobal vp8_%1_loop_filter_simple, 3, %2, 8, dst, stride, flim, cntr
 %endif
 
 %if mmsize == 8 ; mmx / mmxext
-.next8px
+.next8px:
 %endif
 %ifidn %1, v
     ; read 4 half/full rows of pixels
@@ -1633,7 +1611,7 @@ cglobal vp8_%1_loop_filter_simple, 3, %2, 8, dst, stride, flim, cntr
 INIT_MMX mmx
 SIMPLE_LOOPFILTER v, 4
 SIMPLE_LOOPFILTER h, 5
-INIT_MMX mmx2
+INIT_MMX mmxext
 SIMPLE_LOOPFILTER v, 4
 SIMPLE_LOOPFILTER h, 5
 %endif
@@ -1857,7 +1835,7 @@ cglobal vp8_%1_loop_filter16y_inner, 5, 5, 13, dst, stride, flimE, flimI, hevthr
     psubusb          m6, m5          ; q2-q1
     por              m6, m4          ; abs(q2-q1)
 
-%if notcpuflag(mmx2)
+%if notcpuflag(mmxext)
     mova             m4, m_flimI
     pxor             m3, m3
     psubusb          m0, m4
@@ -1897,7 +1875,7 @@ cglobal vp8_%1_loop_filter16y_inner, 5, 5, 13, dst, stride, flimE, flimI, hevthr
     psubusb          m1, m3          ; p1-p0
     psubusb          m6, m2          ; p0-p1
     por              m1, m6          ; abs(p1-p0)
-%if notcpuflag(mmx2)
+%if notcpuflag(mmxext)
     mova             m6, m1
     psubusb          m1, m4
     psubusb          m6, m_hevthr
@@ -1928,7 +1906,7 @@ cglobal vp8_%1_loop_filter16y_inner, 5, 5, 13, dst, stride, flimE, flimI, hevthr
     psubusb          m1, m5          ; q0-q1
     psubusb          m7, m4          ; q1-q0
     por              m1, m7          ; abs(q1-q0)
-%if notcpuflag(mmx2)
+%if notcpuflag(mmxext)
     mova             m7, m1
     psubusb          m1, m6
     psubusb          m7, m_hevthr
@@ -2036,14 +2014,14 @@ cglobal vp8_%1_loop_filter16y_inner, 5, 5, 13, dst, stride, flimE, flimI, hevthr
 %else
     mova             m6, m_maskres
 %endif
-%if notcpuflag(mmx2)
+%if notcpuflag(mmxext)
     mova             m7, [pb_1]
 %else ; mmxext/sse2
     pxor             m7, m7
 %endif
     pand             m0, m6
     pand             m1, m6
-%if notcpuflag(mmx2)
+%if notcpuflag(mmxext)
     paddusb          m0, m7
     pand             m1, [pb_FE]
     pandn            m7, m0
@@ -2119,7 +2097,7 @@ INNER_LOOPFILTER h, 16
 INNER_LOOPFILTER v,  8
 INNER_LOOPFILTER h,  8
 
-INIT_MMX mmx2
+INIT_MMX mmxext
 INNER_LOOPFILTER v, 16
 INNER_LOOPFILTER h, 16
 INNER_LOOPFILTER v,  8
@@ -2365,7 +2343,7 @@ cglobal vp8_%1_loop_filter16y_mbedge, 5, 5, 15, dst1, stride, flimE, flimI, hevt
     psubusb          m6, m5          ; q2-q1
     por              m6, m4          ; abs(q2-q1)
 
-%if notcpuflag(mmx2)
+%if notcpuflag(mmxext)
     mova             m4, m_flimI
     pxor             m3, m3
     psubusb          m0, m4
@@ -2405,7 +2383,7 @@ cglobal vp8_%1_loop_filter16y_mbedge, 5, 5, 15, dst1, stride, flimE, flimI, hevt
     psubusb          m1, m3          ; p1-p0
     psubusb          m6, m2          ; p0-p1
     por              m1, m6          ; abs(p1-p0)
-%if notcpuflag(mmx2)
+%if notcpuflag(mmxext)
     mova             m6, m1
     psubusb          m1, m4
     psubusb          m6, m_hevthr
@@ -2436,7 +2414,7 @@ cglobal vp8_%1_loop_filter16y_mbedge, 5, 5, 15, dst1, stride, flimE, flimI, hevt
     psubusb          m1, m5          ; q0-q1
     psubusb          m7, m4          ; q1-q0
     por              m1, m7          ; abs(q1-q0)
-%if notcpuflag(mmx2)
+%if notcpuflag(mmxext)
     mova             m7, m1
     psubusb          m1, m6
     psubusb          m7, m_hevthr
@@ -2777,7 +2755,7 @@ MBEDGE_LOOPFILTER h, 16
 MBEDGE_LOOPFILTER v,  8
 MBEDGE_LOOPFILTER h,  8
 
-INIT_MMX mmx2
+INIT_MMX mmxext
 MBEDGE_LOOPFILTER v, 16
 MBEDGE_LOOPFILTER h, 16
 MBEDGE_LOOPFILTER v,  8

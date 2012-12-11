@@ -28,6 +28,7 @@
 
 #define COBJMACROS
 #include <windows.h>
+#define NO_DSHOW_STRSAFE
 #include <dshow.h>
 #include <dvdmedia.h>
 
@@ -179,7 +180,7 @@ long          WINAPI libAVMemInputPin_QueryInterface          (libAVMemInputPin 
 unsigned long WINAPI libAVMemInputPin_AddRef                  (libAVMemInputPin *);
 unsigned long WINAPI libAVMemInputPin_Release                 (libAVMemInputPin *);
 long          WINAPI libAVMemInputPin_GetAllocator            (libAVMemInputPin *, IMemAllocator **);
-long          WINAPI libAVMemInputPin_NotifyAllocator         (libAVMemInputPin *, IMemAllocator *, WINBOOL);
+long          WINAPI libAVMemInputPin_NotifyAllocator         (libAVMemInputPin *, IMemAllocator *, BOOL);
 long          WINAPI libAVMemInputPin_GetAllocatorRequirements(libAVMemInputPin *, ALLOCATOR_PROPERTIES *);
 long          WINAPI libAVMemInputPin_Receive                 (libAVMemInputPin *, IMediaSample *);
 long          WINAPI libAVMemInputPin_ReceiveMultiple         (libAVMemInputPin *, IMediaSample **, long, long *);

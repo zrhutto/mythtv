@@ -42,7 +42,7 @@ typedef struct AudioConvert AudioConvert;
  * @param in_fmt         input sample format
  * @param channels       number of channels, or 0 for any number of channels
  * @param ptr_align      buffer pointer alignment, in bytes
- * @param sample_align   buffer size alignment, in samples
+ * @param samples_align  buffer size alignment, in samples
  * @param descr          function type description (e.g. "C" or "SSE")
  * @param conv           conversion function pointer
  */
@@ -72,16 +72,20 @@ AudioConvert *ff_audio_convert_alloc(AVAudioResampleContext *avr,
  * examined to determine whether to use the generic or optimized conversion
  * function (when available).
  *
+ * The number of samples to convert is determined by in->nb_samples. The output
+ * buffer must be large enough to handle this many samples. out->nb_samples is
+ * set by this function before a successful return.
+ *
  * @param ac     AudioConvert context
  * @param out    output audio data
  * @param in     input audio data
- * @param len    number of samples to convert
  * @return       0 on success, negative AVERROR code on failure
  */
-int ff_audio_convert(AudioConvert *ac, AudioData *out, AudioData *in, int len);
+int ff_audio_convert(AudioConvert *ac, AudioData *out, AudioData *in);
 
 /* arch-specific initialization functions */
 
+void ff_audio_convert_init_arm(AudioConvert *ac);
 void ff_audio_convert_init_x86(AudioConvert *ac);
 
 #endif /* AVRESAMPLE_AUDIO_CONVERT_H */
