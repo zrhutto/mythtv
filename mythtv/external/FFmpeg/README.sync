@@ -13,6 +13,7 @@ common.mak
 configure
 libavcodec/Makefile
 libavcodec/avcodec.h
+libavcodec/old_codec_ids.h
 libavcodec/dsputil.h
 libavcodec/dvbsub_parser.c
 libavcodec/dvbsubdec.c
@@ -41,7 +42,6 @@ libavformat/mpegts-mythtv.c  <- new file
 libavformat/mpegts-mythtv.h  <- new file
 libavformat/mpegts.c
 libavformat/mpegts.h
-libavformat/nuv.c  <- could be ignored, whitespace only
 libavformat/utils-mythtv.c  <- new file
 libavformat/utils.c
 libavresample/libavresample.v
