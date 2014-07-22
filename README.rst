@@ -1,3 +1,13 @@
+Fork to build on SmartOS / Illumos.
+
+Currently Working:
+mythtranscode
+mythcommflag
+mythmediaserver
+
+Mostly Working:
+mythbackend (Services API closes connection after 131072 bytes – i.e., 128k – likely due to difference in networking lib or socket def between Linux and Solaris/Illumos)
+
 =====
 MythTV Project Info
 =====
