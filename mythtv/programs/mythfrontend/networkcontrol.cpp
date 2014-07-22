@@ -1,5 +1,9 @@
 #include <unistd.h>
 
+#ifdef __sun
+#include <sys/loadavg.h>
+#endif
+
 #include <QCoreApplication>
 #include <QRegExp>
 #include <QStringList>

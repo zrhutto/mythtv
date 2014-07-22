@@ -31,6 +31,10 @@ using namespace std;
 #ifndef _WIN32
 #include <syslog.h>
 #endif
+//Get Solaris Log function
+#if defined(__sun)
+#include "syslogcompat.h"
+#endif
 #include <stdarg.h>
 #include <string.h>
 #include <sys/stat.h>

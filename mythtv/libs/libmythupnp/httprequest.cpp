@@ -23,6 +23,9 @@
 #if !( CONFIG_DARWIN || CONFIG_CYGWIN || defined(__FreeBSD__) || defined(_WIN32))
 #define USE_SETSOCKOPT
 #include <sys/sendfile.h>
+#if defined(__sun)
+#define SOL_TCP SOL_SOCKET
+#endif
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>

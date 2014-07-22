@@ -37,6 +37,9 @@
 #if defined(__linux__) || defined(__LINUX__)
 #include <sys/prctl.h>
 #endif
+#if defined(__sun)
+#include <sys/termios.h>
+#endif
 #endif
 
 // C++ headers

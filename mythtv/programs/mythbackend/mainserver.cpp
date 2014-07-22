@@ -25,6 +25,12 @@ using namespace std;
 #  endif // _WIN32
 #endif // !__linux__
 
+#if defined(__sun)
+#include <sys/loadavg.h>
+#include <sys/statvfs.h>
+#define statfs statvfs
+#endif
+
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QFile>

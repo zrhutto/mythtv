@@ -10,6 +10,10 @@
 
 #include <QTextStream>
 
+#ifdef __sun
+#include <sys/loadavg.h>
+#endif
+
 #include "upnpsubscription.h"
 #include "mediarenderer.h"
 #include "mythversion.h"

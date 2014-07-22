@@ -1,6 +1,10 @@
 #include <QString>
 #include <QStringList>
 
+#if defined(__sun)
+#include <sys/loadavg.h>
+#endif
+
 #include "mythsystemevent.h"
 #include "mythsocket.h"
 #include "mythsocketmanager.h"

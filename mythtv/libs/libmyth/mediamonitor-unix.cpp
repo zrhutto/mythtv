@@ -8,7 +8,56 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <fcntl.h>
+#ifndef __sun
 #include <fstab.h>
+#elif defined(__sun)
+#include <sys/vfstab.h>
+#define _PATH_FSTAB VFSTAB
+#define fstab vfstab
+#define fs_spec vfs_special
+#define fs_mntops vfs_mntopts
+#define fs_vfstype vfs_fstype
+#define fs_file vfs_mountp
+/*
+ *  * Implement Linux/BSD getfsent(3) in terms of Solaris getvfsent(3C)...
+ *  from mono/support/fstab.c 
+ *  */
+static FILE*
+etc_fstab;
+
+static int
+setfsent (void)
+{
+	/* protect from bad users calling setfsent(), setfsent(), ... endfsent() */
+	if (etc_fstab != NULL)
+		fclose (etc_fstab);
+	etc_fstab = fopen ("/etc/vfstab", "r");
+	if (etc_fstab != NULL)
+		return 1;
+	return 0;
+}
+
+static void
+endfsent (void)
+{
+	fclose (etc_fstab);
+	etc_fstab = NULL;
+}
+
+static struct vfstab
+cur_vfstab_entry;
+
+static struct vfstab*
+getfsent (void)
+{
+	int r;
+	r = getvfsent (etc_fstab, &cur_vfstab_entry);
+	if (r == 0)
+		return &cur_vfstab_entry;
+	return NULL;
+}
+
+#endif
 
 // UNIX System headers
 #include <sys/file.h>
@@ -55,6 +104,8 @@ extern "C" {
 #define MNTTYPE_ISO9660 "iso9660"
 #elif defined(__FreeBSD__) || CONFIG_DARWIN || defined(__OpenBSD__)
 #define MNTTYPE_ISO9660 "cd9660"
+#elif defined(__sun)
+#define MNTTYPE_ISO9660 "hsfs"
 #endif
 #endif
 

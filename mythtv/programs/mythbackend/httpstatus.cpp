@@ -10,6 +10,9 @@
 
 // POSIX headers
 #include <unistd.h>
+#if defined(__sun)
+#include <sys/loadavg.h>
+#endif
 
 // ANSI C headers
 #include <cmath>

@@ -16,6 +16,11 @@
 #include <sys/mount.h>  // for struct statfs
 #endif
 
+#if defined(__sun)
+#include <sys/statvfs.h>
+#define statfs statvfs
+#endif
+
 using namespace std;
 
 #include <QList>

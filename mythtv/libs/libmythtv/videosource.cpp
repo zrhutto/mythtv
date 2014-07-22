@@ -6,6 +6,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#if defined(__sun)
+#include <sys/sysmacros.h>
+#endif
+
 // C++ headers
 #include <algorithm>
 using namespace std;

@@ -30,6 +30,9 @@
 #ifndef _WIN32
 #include <sys/ioctl.h>
 #include <sys/poll.h>
+#ifdef __sun
+#include <sys/filio.h>
+#endif
 #endif
 
 #include "mythcontext.h"

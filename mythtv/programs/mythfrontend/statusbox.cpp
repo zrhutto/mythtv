@@ -1,3 +1,6 @@
+#ifdef __sun
+#include <sys/loadavg.h>
+#endif
 
 #include "statusbox.h"
 

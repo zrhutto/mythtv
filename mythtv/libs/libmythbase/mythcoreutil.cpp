@@ -8,6 +8,12 @@
 // System specific C headers
 #include "compat.h"
 
+//Solaris headers
+#ifdef sun
+#include <sys/statvfs.h>
+#define statfs statvfs
+#endif
+
 #ifdef linux
 #include <sys/vfs.h>
 #include <sys/sysinfo.h>

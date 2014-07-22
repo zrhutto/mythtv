@@ -18,6 +18,7 @@ unix {
 
     !macx {
         LIBS += -lrt
+        !linux: LIBS+= -lsocket -lnsl
     }
 
 }

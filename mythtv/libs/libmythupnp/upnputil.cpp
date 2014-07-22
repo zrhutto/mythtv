@@ -14,6 +14,9 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <cerrno>
+#if defined(__sun)
+#include <net/if.h>
+#endif
 
 // Qt headers
 #include <QUuid>
